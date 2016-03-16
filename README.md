@@ -1,2 +1,3 @@
-# Kaggle Santander
-2016 Kaggle competition for Santander Customer Satisfaction.
+# kaggle-santander
+
+Boulder Data Science at it again with another Kaggle competition!
