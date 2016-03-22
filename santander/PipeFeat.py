@@ -8,8 +8,6 @@ from sklearn.base import BaseEstimator
 
 class Featurizer(BaseEstimator):
 
-    MODULO = 1e3
-
     def __init__(self):
         return None
     
@@ -18,7 +16,6 @@ class Featurizer(BaseEstimator):
 
     def transform(self, X):
         self.customer = X
-        # self.filter_fakes('var38')
         return self.get_features()
 
     def scale01(self, feature, exclude = [0]):
@@ -27,19 +24,6 @@ class Featurizer(BaseEstimator):
         ecdf = ECDF(trim_feature)
         qtile = ecdf(feature)
         return qtile
-
-    def find_fake_balance_remainder(self, balance, modulo = MODULO, above_thresh = 1e2):
-        remainder = balance % modulo
-        value_count = remainder.value_counts()
-        fake_balance = value_count / np.median(value_count) > above_thresh
-        dup = value_count[fake_balance]
-        fake_remainder = dup.index.values
-        print "Removed %d instances of %0.2f" % (dup, fake_remainder)
-        return fake_remainder
-
-    def is_legit(self, balance, fake_remainder, modulo = MODULO):
-        fake_balance = balance % modulo in fake_remainder
-        return not fake_balance
 
     def characterize(self, col, feature, min_uniq_len = 5):
 
@@ -114,26 +98,18 @@ class Featurizer(BaseEstimator):
                 else:
                     pred = pd.DataFrame({ col: self.scale01(feature) })
             else:
+
+                # 
                 feature_scaled = pd.DataFrame({ col: self.scale01(feature) })
                 pred = pd.concat([is_negative, feature_scaled], axis = 1)
+
+                pred = pd.DataFrame({ col: self.scale01(feature) })
 
         else:
             print "Feature %s is neither int nor float" % col
             pred = feature
         
         return pred
-            
-
-    def filter_fakes(self, col):
-        # var38 with $117310.979016 is very duplicated -- should be removed
-        balance = self.customer[col]
-        fake = self.find_fake_balance_remainder(balance)
-        
-        should_proceed = [self.is_legit(b, fake) for b in balance]
-
-        self.customer = self.customer[should_proceed]
-
-        return self
 
     def get_features(self):
 
@@ -152,24 +128,3 @@ class Featurizer(BaseEstimator):
         print "Dropped %d features due to no variation" % nct
         print "Introduced %d features" % (wide_customer.shape[1]-(self.customer.shape[1]-nct))
         return wide_customer
-
-# print "Reading data..."
-# train = pd.read_csv('../data/train.csv')
-# 
-# featz = Featurizer(train)
-# 
-# featz.filter_fakes('var38')
-# 
-# # combine spanish from column names
-# # import read_customer as rc
-# # spanish = rc.combine_spanish(featz.customer)
-# # featz.customer = pd.concat([featz.customer, spanish], axis = 1)
-# 
-# # reverse feature engineering
-# print "Engineering features..."
-# X = featz.get_features()
-# 
-# print X.shape
-# print X.columns
-# 
-# print X.describe().transpose()

@@ -1,54 +1,66 @@
-import sys
-import os
-sys.path.append(os.path.abspath('..'))
-
-
-import numpy as np
 import pandas as pd
-# import matplotlib.pyplot as plt
-
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.cross_validation import train_test_split
-from sklearn.ensemble import GradientBoostingClassifier
-from xgboost import XGBClassifier, plot_importance
+from xgboost import XGBClassifier
 
 from santander.utils import ColumnDropper
 from santander.utils import ZERO_VARIANCE_COLUMNS, CORRELATED_COLUMNS
-
 from santander.PipeFeat import Featurizer
+import santander.read_customer as rc
 
+# read in both sets of data
+train = pd.read_csv('data/train.csv')
+train['train_or_test'] = pd.Series('train', index=train.index)
+test = pd.read_csv('data/test.csv')
+test['train_or_test'] = pd.Series('test', index=test.index)
 
-df_train = pd.read_csv('../data/train.csv')
-df_target = df_train['TARGET']
-df_train = df_train.drop(['TARGET', 'ID'], axis=1)
+# grab the answers then drop
+y_train = train['TARGET']
+train = train.drop('TARGET',1)
 
+# save ID for later
+ID_test = test['ID']
 
-# X_train = df_train.copy()
-# y_train = df_target
-# 
-# X_train, X_test, y_train, y_test= train_test_split(X_train, y_train, test_size=0.3, random_state=0)
-# xgb = XGBClassifier(seed=0)
-# xgb = xgb.fit(X_train, y_train, eval_metric="auc", eval_set=[(X_test, y_test)])
+# concat and drop ID, reset index
+all_obs = pd.concat([train, test], axis = 0)
+all_obs = all_obs.drop('ID', 1)
+all_obs.reset_index(drop=True, inplace=True)
 
-# plot_importance(xgb)
+# combine spanish bag of words
+spanish = rc.combine_spanish(all_obs)
+all_obs = pd.concat([all_obs, spanish], 1)
 
-
+# initialize pipeline
 pipeline = Pipeline([
-        ('cd', ColumnDropper(drop=ZERO_VARIANCE_COLUMNS+CORRELATED_COLUMNS)),
-        ('feat', Featurizer()) #,
-#        ('std', StandardScaler()),
-#        ('pca', PCA(n_components=150))
+        ('cd', ColumnDropper(drop=CORRELATED_COLUMNS)),
+        ('feat', Featurizer())
     ])
 
-pipeline = pipeline.fit(df_train)
-X_train = pipeline.transform(df_train)
-y_train = df_target
+# run all_obs through featurization
+pipeline = pipeline.fit(all_obs)
+all_obs_featz = pipeline.transform(all_obs)
 
-X_train, X_test, y_train, y_test= train_test_split(X_train, y_train, test_size=0.3, random_state=0)
-xgb = XGBClassifier(seed=0)
-xgb = xgb.fit(X_train, y_train, eval_metric="auc", eval_set=[(X_test, y_test)])
+# grab train/test data back out
+X_train = all_obs_featz[all_obs_featz['train_or_test']=='train']
+X_train = X_train.drop('train_or_test',1)
+X_test = all_obs_featz[all_obs_featz['train_or_test']=='test']
+X_test = X_test.drop('train_or_test',1)
 
-# plot_importance(xgb)
 
+# best params so far using column/row subsampling, even longer training
+learning_rate = 0.01
+n_estimators = 800
+max_depth = 6
+subsample = 0.9
+colsample_bytree = 0.85
+min_child_weight = 1  # default
+
+
+xgb = XGBClassifier(seed=0, learning_rate=learning_rate, n_estimators=n_estimators,
+                    min_child_weight=min_child_weight, max_depth=max_depth,
+                    colsample_bytree=colsample_bytree, subsample=subsample)
+xgb = xgb.fit(X_train, y_train, eval_set=[(X_train, y_train)], eval_metric='auc')
+
+y_pred = xgb.predict_proba(X_test)
+submission = pd.DataFrame({'ID': ID_test, 'TARGET': y_pred[:, 1]})
+submission.to_csv('submission.csv', index=False)
+print 'Wrote submission.csv'
