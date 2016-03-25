@@ -1,12 +1,6 @@
 import pandas as pd
 import re
 
-LIMIT = int(1e2)
-
-def read_santander(path_to_data, train_or_test):
-    d = pd.read_csv(path_to_data + train_or_test + '.csv', sep = ',')
-    return(d)
-
 def create_bag_of_spanish(gordo):
     # seem to be meaningful words in the column names
     bag_of_spanish = []
@@ -28,13 +22,15 @@ def create_bag_of_spanish(gordo):
     return list(set(bag_of_spanish))
 
 
-def combine_spanish(gordo, limit = None):
+def combine_spanish(gordo):
 
-	# get the set of computery spanish in the column names
+    print "Combining Spanish bag of words..."
+
+    # get the set of computery spanish in the column names
     bag_of_spanish = create_bag_of_spanish(gordo)
 
     word_count = {}
-    for i, one in gordo[:limit].iterrows():
+    for i, one in gordo.iterrows():
 
         # for this customer, which positive (nonzero) features are present?
         features = list(one.iloc[one.nonzero()[0]].index)
@@ -56,18 +52,7 @@ def combine_spanish(gordo, limit = None):
     spanish = pd.DataFrame(word_count).transpose()
     # fill in NaN
     spanish = spanish.fillna(0)
+
+    print "Added %d Spanish columns" % spanish.shape[1]
     
     return spanish
-
-
-if __name__ == '__main__':
-
-    customer = read_santander('./data/', 'train')
-
-    id_columns = ['ID','TARGET']
-
-    # combine spanish from column names
-    gordo = customer.drop(id_columns, axis = 1)
-    spanish = combine_spanish(gordo, LIMIT)
-
-    print spanish.head()
