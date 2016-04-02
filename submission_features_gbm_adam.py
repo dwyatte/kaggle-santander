@@ -6,6 +6,8 @@ from santander.preprocessing import ColumnDropper
 from santander.preprocessing import CORRELATED_COLUMNS
 from santander.feature_extraction import Featurizer, BOW
 
+filename = 'submission_features_gbm_adam.csv'
+
 # read in both sets of data
 train = pd.read_csv('data/train.csv')
 train['train_or_test'] = pd.Series('train', index=train.index)
@@ -61,5 +63,5 @@ xgb = xgb.fit(X_train, y_train, eval_set=[(X_train, y_train)], eval_metric='auc'
 
 y_pred = xgb.predict_proba(X_test)
 submission = pd.DataFrame({'ID': ID_test, 'TARGET': y_pred[:, 1]})
-submission.to_csv('submission_adam.csv', index=False)
-print 'Wrote submission_adam.csv'
+submission.to_csv(filename, index=False)
+print 'Wrote %s' % filename

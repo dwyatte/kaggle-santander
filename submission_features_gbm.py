@@ -6,6 +6,8 @@ from santander.preprocessing import ColumnDropper
 from santander.preprocessing import CORRELATED_COLUMNS
 from santander.feature_extraction import BOW, Featurizer
 
+filename = 'submission_features_gbm.csv'
+
 pipeline = Pipeline([
     ('cd', ColumnDropper(drop=CORRELATED_COLUMNS)),
     ('feat', Featurizer())
@@ -51,5 +53,5 @@ print df_importance.sort_values('importance', ascending=False).reset_index(drop=
 
 y_pred = xgb.predict_proba(X_test)
 submission = pd.DataFrame({'ID': ID_test, 'TARGET': y_pred[:, 1]})
-submission.to_csv('submission_features.csv', index=False)
-print 'Wrote submission_features.csv'
+submission.to_csv(filename, index=False)
+print 'Wrote %s' % filename
