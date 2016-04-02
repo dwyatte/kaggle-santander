@@ -1,8 +1,10 @@
 import pandas as pd
 from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier
-from santander.utils import ColumnDropper
-from santander.utils import ZERO_VARIANCE_COLUMNS, CORRELATED_COLUMNS
+from santander.preprocessing import ColumnDropper
+from santander.preprocessing import ZERO_VARIANCE_COLUMNS, CORRELATED_COLUMNS
+
+filename = 'submission_gbm.csv'
 
 pipeline = Pipeline([
     ('cd', ColumnDropper(drop=ZERO_VARIANCE_COLUMNS+CORRELATED_COLUMNS)),
@@ -50,8 +52,6 @@ xgb = XGBClassifier(seed=0, learning_rate=learning_rate, n_estimators=n_estimato
 xgb = xgb.fit(X_train, y_train, eval_set=[(X_train, y_train)], eval_metric='auc')
 
 y_pred = xgb.predict_proba(X_test)
-submission = pd.DataFrame({'ID': ID_test, 'TARGET': y_pred[:, 1]})
-submission.to_csv('submission.csv', index=False)
-print 'Wrote submission.csv'
-
-
+submission = pd.DataFrame({'ID': ID_test, 'TARGET': y_pred[:, -1]})
+submission.to_csv(filename, index=False)
+print 'Wrote %s' % filename
