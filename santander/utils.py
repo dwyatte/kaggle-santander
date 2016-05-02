@@ -39,12 +39,12 @@ def pd_to_vw(filename, features, labels, reweight_importance=False, namespace_to
     labels = MinMaxScaler((-1, 1)).fit_transform(labels)
 
     with open(filename, 'w') as f:
-        for i in range(n):
+        for i, l in enumerate(features.index):
             line = '%d ' % labels[i]
-            line += '%f ' % importance
+            line += '%f ' % importance[i]
             for namespace in namespace_to_features:
                 line += '|%s ' % namespace
-                d = features.loc[i, namespace_to_features[namespace]].to_dict()
+                d = features.loc[l, namespace_to_features[namespace]].to_dict()
                 line += ' '.join(['%s:%f' % (k, v) for k, v in d.iteritems()])
             f.write(line+'\n')
             if i % int(n/10.0) == 0:
