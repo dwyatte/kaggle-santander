@@ -11,7 +11,8 @@ filename = 'submission_ensemble.csv'
 gbm = pd.read_csv('submission_xgb_lalala_under_23.csv')
 # gbm = pd.read_csv('submission_xgb_lalala_to_the_top.csv')
 # gbm = pd.read_csv('submission_xgb_lalala_to_the_top_v3_27.csv')
-nn = pd.read_csv('submission_nn_good_old.csv')
+# nn = pd.read_csv('submission_nn_good_old.csv')
+nn = pd.read_csv('submission_nn.csv')
 knn = pd.read_csv('submission_knn.csv')
 el = pd.read_csv('submission_elasticnet.csv')
 
